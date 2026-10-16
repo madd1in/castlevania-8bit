@@ -25,6 +25,8 @@ Xbox-Controller im Edge-Browser: A springt, B entfesselt den Mondsturm, X schlä
 - Drei Regionen mit eigenen Farben und Kulissen: Wald, Krypta und Burg.
 - Drei versteckte Mondsigillen laden einen bildschirmfüllenden Flächenangriff auf und verletzen auch den Boss.
 - Gebietseinblendungen und eigene Übergangsstinger machen den Weg vom Wald bis zur Krypta und Burg lesbarer.
+- Neue Grabeshunde kündigen ihren Sprung an und preschen dann durch die Stage.
+- Die Peitsche kann Feuerkugeln im richtigen Moment zurückschlagen; Treffer geben Bonuspunkte und können den Boss treffen.
 - Relikte aus Kerzen verbessern die Peitsche bis Stufe III.
 - Schnelle Treffer bauen einen Punkte-Kombozähler auf.
 - Der Nachtgraf wechselt bei halber Energie in eine schnellere zweite Phase mit eigener Melodie und digitalem Schlagzeug.

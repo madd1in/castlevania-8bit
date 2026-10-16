@@ -38,6 +38,7 @@ let bestScore = 0;
 let moonFlash = 0;
 let regionBannerTimer = 0;
 let currentRegion = 0;
+let parryBannerTimer = 0;
 
 try {
   bestScore = Number(localStorage.getItem("ashenMoonBestScore")) || 0;
@@ -267,6 +268,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
     moonFlash = 0;
     regionBannerTimer = 0;
     currentRegion = 0;
+    parryBannerTimer = 0;
     combo = 0;
     comboTimer = 0;
     player = {
@@ -300,21 +302,24 @@ const gamepadStatus = document.getElementById("gamepad-status");
     enemies = [];
     const placements = [
       [315, "bat"], [520, "skeleton"], [760, "bat"], [965, "skeleton"],
-      [1195, "ghost"], [1400, "skeleton"], [1610, "bat"], [1810, "skeleton"],
-      [2070, "ghost"], [2295, "skeleton"], [2510, "bat"], [2740, "skeleton"],
+      [1195, "ghost"], [1335, "hound"], [1400, "skeleton"], [1610, "bat"], [1810, "skeleton"],
+      [2070, "ghost"], [2295, "skeleton"], [2405, "hound"], [2510, "bat"], [2740, "skeleton"],
       [2960, "ghost"], [3100, "bat"]
     ];
     placements.forEach(([x, type], index) => enemies.push({
       x,
       baseX: x,
-      y: type === "bat" ? FLOOR - 35 - (index % 2) * 18 : FLOOR - 25,
+      y: type === "bat" ? FLOOR - 35 - (index % 2) * 18
+        : type === "hound" ? FLOOR - 17 : FLOOR - 25,
       type,
-      w: type === "bat" ? 18 : 16,
-      h: type === "bat" ? 12 : 25,
+      w: type === "bat" ? 18 : type === "hound" ? 22 : 16,
+      h: type === "bat" ? 12 : type === "hound" ? 17 : 25,
       hp: 2,
       alive: true,
       phase: Math.random() * 5,
-      facing: -1
+      facing: -1,
+      dashing: false,
+      telegraph: false
     }));
     candles = Array.from({ length: 13 }, (_, index) => ({
       x: 245 + index * 248,
@@ -420,7 +425,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
       boss.hurt = 0.3;
       if (boss.hp <= 0) defeatBoss();
     }
-    projectiles = projectiles.filter(projectile => projectile.kind === "dagger" ||
+    projectiles = projectiles.filter(projectile => projectile.kind !== "fire" ||
       Math.hypot(projectile.x - centerX, projectile.y - centerY) > 180);
     spawnBurst(centerX, centerY, "#a8e3ff", 26, 150);
     spawnBurst(centerX, centerY, "#fff0a8", 16, 105);
@@ -500,6 +505,26 @@ const gamepadStatus = document.getElementById("gamepad-status");
         spawnBurst(candle.x, candle.y, "#ffcf73", 6, 42);
         tone(660, 0.09, "square", 0.025);
       }
+    }
+    let reflected = 0;
+    for (const projectile of projectiles) {
+      if (projectile.kind !== "fire" || !overlaps(box, projectile)) continue;
+      projectile.kind = "reflected";
+      projectile.x = player.facing > 0 ? player.x + player.w : player.x - projectile.w;
+      projectile.y = player.y + player.h / 2;
+      projectile.vx = player.facing * 260;
+      projectile.vy = -18;
+      projectile.life = 1.4;
+      score += 150;
+      reflected += 1;
+    }
+    if (reflected > 0) {
+      saveBestScore();
+      parryBannerTimer = 1.1;
+      shake = Math.max(shake, 1.5);
+      spawnBurst(player.x + player.w / 2, player.y + player.h / 2, "#a8e3ff", 10, 72);
+      tone(880, 0.11, "square", 0.03);
+      tone(1320, 0.16, "triangle", 0.025);
     }
     if (boss.active && !boss.defeated && boss.lastSwing !== player.swing &&
       overlaps(box, boss) && player.y + player.h > boss.y + 8) {
@@ -585,6 +610,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
     if (comboTimer === 0) combo = 0;
     moonFlash = Math.max(0, moonFlash - dt);
     regionBannerTimer = Math.max(0, regionBannerTimer - dt);
+    parryBannerTimer = Math.max(0, parryBannerTimer - dt);
     bossIntro = Math.max(0, bossIntro - dt);
     shake = Math.max(0, shake - 55 * dt);
 
@@ -660,6 +686,19 @@ const gamepadStatus = document.getElementById("gamepad-status");
       if (enemy.type === "bat") {
         enemy.x += Math.sign(distance) * Math.min(Math.abs(distance), 28 * dt);
         enemy.y = FLOOR - 36 + Math.sin(enemy.phase * 4) * 15;
+      } else if (enemy.type === "hound") {
+        const range = Math.abs(distance);
+        const cycle = enemy.phase % 2.8;
+        const telegraph = range < 235 && cycle > 1.55 && cycle <= 2.15;
+        const dashing = range < 235 && cycle > 2.15;
+        enemy.facing = Math.sign(distance) || enemy.facing;
+        if (dashing && !enemy.dashing) {
+          spawnBurst(enemy.x + enemy.w / 2, FLOOR - 2, "#b47d74", 4, 34);
+          tone(135, 0.09, "sawtooth", 0.016);
+        }
+        enemy.telegraph = telegraph;
+        enemy.dashing = dashing;
+        if (range < 250) enemy.x += enemy.facing * (dashing ? 118 : 24) * dt;
       } else if (Math.abs(distance) < 190) {
         enemy.facing = Math.sign(distance);
         enemy.x += enemy.facing * 28 * dt;
@@ -703,7 +742,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
       projectile.x += projectile.vx * dt;
       projectile.y += projectile.vy * dt;
       projectile.life -= dt;
-      if (projectile.kind === "dagger") {
+      if (projectile.kind === "dagger" || projectile.kind === "reflected") {
         for (const enemy of enemies) {
           if (enemy.alive && overlaps(projectile, enemy)) {
             damageEnemy(enemy);
@@ -976,6 +1015,22 @@ const gamepadStatus = document.getElementById("gamepad-status");
       rect(x + 12, y + (flap ? 5 : 1), 6, 3, "#4d3b66");
       rect(x + 3, y + (flap ? 0 : 8), 3, 3, "#241e38");
       rect(x + 14, y + (flap ? 8 : 0), 3, 3, "#241e38");
+    } else if (enemy.type === "hound") {
+      const bodyY = y + (enemy.dashing ? 2 : enemy.telegraph ? 1 : 0);
+      const stride = Math.floor(elapsed * 13) % 2;
+      ctx.save();
+      ctx.translate(x + (enemy.facing < 0 ? enemy.w : 0), 0);
+      if (enemy.facing < 0) ctx.scale(-1, 1);
+      rect(3, bodyY + 7, 14, 7, "#2b2035");
+      rect(5, bodyY + 5, 10, 4, "#584052");
+      rect(14, bodyY + 3, 7, 8, "#8d4054");
+      rect(18, bodyY + 7, 4, 4, "#c18073");
+      rect(15, bodyY + 1, 3, 4, "#c18073");
+      rect(2, bodyY + 8, 4, 3, "#a45460");
+      rect(4 + stride, bodyY + 13, 4, 4, "#39283e");
+      rect(13 - stride, bodyY + 13, 4, 4, "#39283e");
+      rect(18, bodyY + 5, 2, 2, enemy.dashing || enemy.telegraph ? "#ff8b78" : "#f3ca79");
+      ctx.restore();
     } else if (enemy.type === "ghost") {
       rect(x + 5, y + 2, 10, 6, "#b0a5c7");
       rect(x + 3, y + 7, 14, 11, "#8e88aa");
@@ -1028,13 +1083,14 @@ const gamepadStatus = document.getElementById("gamepad-status");
   const drawProjectiles = () => {
     for (const projectile of projectiles) {
       const x = projectile.x - camera;
-      if (projectile.kind === "dagger") {
+      if (projectile.kind === "dagger" || projectile.kind === "reflected") {
         ctx.save();
         ctx.translate(Math.round(x), Math.round(projectile.y));
         ctx.rotate(Math.atan2(projectile.vy, projectile.vx));
-        rect(-5, -1, 10, 2, "#f4e7ca");
-        rect(3, -2, 3, 4, "#cc6870");
+        rect(-5, -1, 10, 2, projectile.kind === "reflected" ? "#b7efff" : "#f4e7ca");
+        rect(3, -2, 3, 4, projectile.kind === "reflected" ? "#73cfff" : "#cc6870");
         ctx.restore();
+        if (projectile.kind === "reflected") rect(x - Math.sign(projectile.vx) * 5, projectile.y - 1, 4, 2, "#8edfff88");
       } else {
         rect(x - 3, projectile.y - 3, 7, 7, "#fa844f");
         rect(x - 1, projectile.y - 1, 3, 3, "#ffe18a");
@@ -1084,6 +1140,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
     }
     if (combo > 1 && comboTimer > 0) text("KOMBO x" + combo, 192, 15, 6, "#f4cd72", "center");
     if (player.sigils === 3) text("C / B: MONDSTURM", 192, 53, 6, "#c8edff", "center");
+    if (parryBannerTimer > 0) text("PARRY! +150", 192, 60, 7, "#a8e3ff", "center");
   };
 
   const drawOverlay = (headline, lines, prompt) => {
@@ -1092,7 +1149,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
     rect(36, 48, W - 72, 2, "#d0a96b");
     rect(36, 167, W - 72, 2, "#7a354e");
     text(headline, W / 2, 61, 15, "#f0d6ac", "center");
-    lines.forEach((line, index) => text(line, W / 2, 91 + index * 13, 7, "#c9c0c0", "center"));
+    lines.forEach((line, index) => text(line, W / 2, 91 + index * 13, 6, "#c9c0c0", "center"));
     text(prompt, W / 2, 144, 8, "#f1c86c", "center");
   };
 
@@ -1146,9 +1203,9 @@ const gamepadStatus = document.getElementById("gamepad-status");
     drawMoonStorm();
     if (state === "title") {
       drawOverlay("DER ASCHENMOND", [
-        "MIRA BELMONT GEGEN DIE NACHT",
-        "WALD · KRYPTA · BURG",
-        "DREI MONDSIGILLEN ENTFESSELN DEN STURM"
+        "WALD · KRYPTA · BURG · NACHTGRAF WARTET",
+        "PFEILE LAUFEN · SPACE SPRINGEN · Z PEITSCHE",
+        "X MESSER · C MONDSTURM · PAD: A/X/Y/B"
       ], "ENTER / A STARTET · START VERSUCHT VOLLBILD");
       drawHero(12, FLOOR - 27, 1, 0, false, false, false);
     } else if (state === "paused") {
@@ -1167,6 +1224,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
       text(regions[currentRegion], W / 2, 73, 6, "#f2dfba", "center");
     } else if (state === "play" && bossIntro > 0) {
       text("DER NACHTGRAF ERWACHT", W / 2, 80, 8, "#f1ca7c", "center");
+      text("PEITSCHE REFLEKTIERT FEUERKUGELN", W / 2, 94, 6, "#a8e3ff", "center");
     }
     ctx.restore();
   };
