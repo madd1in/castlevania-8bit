@@ -1,0 +1,363 @@
+:root {
+  color-scheme: dark;
+  --ink: #090d19;
+  --paper: #e8dfd0;
+  --gold: #f3c96b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  color: var(--paper);
+  background:
+    radial-gradient(ellipse at 50% 12%, #25223a 0, #111522 40%, var(--ink) 78%),
+    var(--ink);
+  font-family: "Courier New", monospace;
+  image-rendering: pixelated;
+}
+
+.cabinet {
+  width: min(960px, calc(100vw - 32px));
+  padding: clamp(16px, 3vw, 30px);
+  border: 1px solid #554455;
+  background: linear-gradient(145deg, #1b2031, #101422 48%, #171324);
+  box-shadow:
+    0 0 0 5px #080b13,
+    0 0 0 6px #6a5260,
+    0 24px 90px #000b;
+}
+
+.masthead {
+  text-align: center;
+  padding-bottom: 17px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #9d93a7;
+  font-size: clamp(7px, 1vw, 9px);
+  letter-spacing: 0.16em;
+}
+
+h1 {
+  margin: 0;
+  color: #f2d5b0;
+  font-size: clamp(23px, 5vw, 45px);
+  line-height: 1.25;
+  letter-spacing: -0.08em;
+  text-shadow: 3px 3px 0 #702f46, 6px 6px 0 #351f35;
+}
+
+h1 span {
+  color: #f0c6a1;
+}
+
+.subtitle {
+  margin: 11px 0 0;
+  color: var(--gold);
+  font-size: clamp(8px, 1.4vw, 12px);
+  letter-spacing: 0.38em;
+  text-shadow: 0 0 12px #e25854aa;
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 5px solid #090b13;
+  background: #070d19;
+  box-shadow: 0 0 0 1px #76627a, inset 0 0 24px #000;
+}
+
+.screen-tools {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.screen-tools button {
+  min-height: 26px;
+  padding: 5px 7px;
+  border: 1px solid #827080;
+  color: #f4ddb0;
+  background: #101220d9;
+  font: 700 8px "Courier New", monospace;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.screen-tools button:hover,
+.screen-tools button:focus-visible {
+  color: #fff3d1;
+  border-color: #f1c76d;
+  outline: none;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    #05060b 3px,
+    #05060b 4px
+  );
+}
+
+.marquee,
+.help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.marquee {
+  padding: 12px 3px 0;
+  color: #b5aab8;
+  font-size: clamp(6px, 0.9vw, 8px);
+}
+
+.status {
+  color: #9fabb0;
+  white-space: nowrap;
+}
+
+.status i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #83d5a1;
+  box-shadow: 0 0 9px #83d5a1;
+}
+
+.help {
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 19px;
+  color: #aaa2b1;
+  font-size: clamp(6px, 0.85vw, 8px);
+  line-height: 2;
+}
+
+kbd {
+  padding: 4px 5px;
+  border: 1px solid #625168;
+  border-bottom-width: 3px;
+  color: #f4d183;
+  background: #191829;
+  font: inherit;
+}
+
+.credit {
+  margin: 16px 0 0;
+  color: #777386;
+  text-align: center;
+  font-size: 7px;
+  letter-spacing: 0.18em;
+}
+
+.touch-controls {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16px 4px 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.touch-controls button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 2px solid #867289;
+  border-bottom-width: 4px;
+  border-radius: 8px;
+  color: #f6d98d;
+  background: #252238;
+  font: inherit;
+  font-size: 13px;
+  touch-action: none;
+}
+
+.touch-controls button:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  background: #45334c;
+}
+
+.dpad,
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.touch-controls .button-main {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  color: white;
+  background: #893b55;
+}
+
+.touch-controls .button-jump {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  color: #161421;
+  background: #f0cd80;
+}
+
+.touch-controls .button-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .touch-controls {
+    display: flex;
+  }
+
+  .screen-tools button {
+    min-height: 34px;
+    padding-inline: 9px;
+    font-size: 9px;
+  }
+
+  .help span:nth-child(2),
+  .help span:nth-child(5) {
+    display: none;
+  }
+
+  .help .pad-help {
+    display: none;
+  }
+
+  .cabinet {
+    width: min(960px, calc(100vw - 18px));
+    padding: 14px 12px;
+  }
+}
+
+@media (max-height: 650px) and (min-width: 701px) {
+  .cabinet {
+    width: min(780px, calc(100vw - 40px));
+    padding: 14px 22px;
+  }
+
+  .masthead {
+    padding-bottom: 9px;
+  }
+
+  .help {
+    margin-top: 12px;
+  }
+}
+
+.cabinet:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 0;
+  box-shadow: none;
+  background: #080b13;
+}
+
+.cabinet:fullscreen .masthead,
+.cabinet:fullscreen .marquee,
+.cabinet:fullscreen .help,
+.cabinet:fullscreen .credit {
+  display: none;
+}
+
+.cabinet:fullscreen .screen {
+  width: min(100%, 140dvh);
+  max-height: calc(100dvh - 112px);
+  margin: auto;
+  flex: 0 1 auto;
+}
+
+.cabinet:fullscreen canvas {
+  width: 100%;
+  max-height: calc(100dvh - 112px);
+}
+
+.cabinet:fullscreen .touch-controls {
+  margin: 8px auto 0;
+  width: min(100%, 960px);
+}
+
+.cabinet:fullscreen .screen-tools button {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 10px;
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+  body {
+    min-height: 100dvh;
+    align-items: start;
+  }
+
+  .cabinet {
+    width: min(100vw, 100vh * 16 / 9);
+    padding: 8px;
+  }
+
+  .masthead {
+    padding-bottom: 7px;
+  }
+
+  .eyebrow,
+  .credit,
+  .help {
+    display: none;
+  }
+
+  .masthead h1 {
+    font-size: 21px;
+  }
+
+  .subtitle {
+    margin-top: 3px;
+    font-size: 8px;
+  }
+
+  .touch-controls {
+    margin-top: 8px;
+  }
+}

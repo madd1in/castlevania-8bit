@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#090d19">
+    <title>Castlevania: Aschenmond</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="cabinet">
+      <header class="masthead">
+        <p class="eyebrow">EIN NEUES 8-BIT FANABENTEUER</p>
+        <h1>CASTLE<span>VANIA</span></h1>
+        <p class="subtitle">DER ASCHENMOND</p>
+      </header>
+      <section class="screen" aria-label="Spielbereich">
+        <canvas id="game" width="384" height="216" aria-label="Castlevania: Der Aschenmond"></canvas>
+        <div class="scanlines" aria-hidden="true"></div>
+        <div class="screen-tools">
+          <button id="sound-button" type="button" aria-label="Ton umschalten">♪ TON AN</button>
+          <button id="fullscreen-button" type="button" aria-label="Vollbild umschalten">⛶ VOLLBILD</button>
+        </div>
+      </section>
+      <div class="marquee">
+        <span>STAGE 01 — DER WEG ZUM SCHLOSS</span>
+        <span class="status"><i></i><span id="gamepad-status">EDGE · PAD BEREIT</span></span>
+      </div>
+      <nav class="touch-controls" aria-label="Touch-Steuerung">
+        <div class="dpad">
+          <button data-key="left" aria-label="Nach links">◀</button>
+          <button data-key="right" aria-label="Nach rechts">▶</button>
+          <button data-key="down" aria-label="Ducken">▼</button>
+        </div>
+        <div class="action-buttons">
+          <button data-key="dagger" class="button-small" aria-label="Wurfmesser">M</button>
+          <button data-key="attack" class="button-main" aria-label="Peitsche">B</button>
+          <button data-key="jump" class="button-jump" aria-label="Springen">A</button>
+        </div>
+      </nav>
+      <footer class="help">
+        <span><kbd>←</kbd><kbd>→</kbd> LAUFEN</span>
+        <span><kbd>LEERTASTE</kbd> SPRINGEN</span>
+        <span><kbd>Z</kbd> PEITSCHE</span>
+        <span><kbd>X</kbd> MESSER</span>
+        <span><kbd>P</kbd> PAUSE</span>
+        <span><kbd>M</kbd> TON</span>
+        <span><kbd>F</kbd> VOLLBILD</span>
+        <span class="pad-help"><kbd>A</kbd> SPRUNG · <kbd>X</kbd> PEITSCHE · <kbd>Y</kbd> MESSER</span>
+      </footer>
+      <p class="credit">MIRA BELMONT · EINE NACHT · EIN SCHLOSS</p>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
