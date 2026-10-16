@@ -35,6 +35,9 @@ let shake = 0;
 let combo = 0;
 let comboTimer = 0;
 let bestScore = 0;
+let moonFlash = 0;
+let regionBannerTimer = 0;
+let currentRegion = 0;
 
 try {
   bestScore = Number(localStorage.getItem("ashenMoonBestScore")) || 0;
@@ -144,6 +147,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
       if (pressed(12)) next.add("up");
       if (pressed(13)) next.add("down");
       if (pressed(0)) next.add("jump");
+      if (pressed(1)) next.add("special");
       if (pressed(2)) next.add("attack");
       if (pressed(3)) next.add("dagger");
       if (pressed(9) || pressed( startButtonIndex(gamepad) )) next.add("start");
@@ -183,6 +187,29 @@ const gamepadStatus = document.getElementById("gamepad-status");
     oscillator.stop(when + duration);
   };
 
+  const scheduleNoise = (when, duration, volume, cutoff) => {
+    if (!soundOn || !audio) return;
+    const sampleCount = Math.ceil(audio.sampleRate * duration);
+    const buffer = audio.createBuffer(1, sampleCount, audio.sampleRate);
+    const samples = buffer.getChannelData(0);
+    for (let index = 0; index < sampleCount; index++) {
+      samples[index] = (Math.random() * 2 - 1) * (1 - index / sampleCount);
+    }
+    const source = audio.createBufferSource();
+    const filter = audio.createBiquadFilter();
+    const gain = audio.createGain();
+    source.buffer = buffer;
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(cutoff, when);
+    gain.gain.setValueAtTime(volume, when);
+    gain.gain.exponentialRampToValueAtTime(0.001, when + duration);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(audio.destination);
+    source.start(when);
+    source.stop(when + duration);
+  };
+
   const tone = (frequency, duration = 0.08, type = "square", volume = 0.035) => {
     if (!soundOn || !audio) return;
     const oscillator = audio.createOscillator();
@@ -205,8 +232,13 @@ const gamepadStatus = document.getElementById("gamepad-status");
       [164.81, 0, 196, 246.94, 220, 0, 196, 146.83, 164.81, 0, 246.94, 293.66, 261.63, 0, 220, 196],
       [196, 0, 246.94, 293.66, 329.63, 0, 293.66, 246.94, 220, 0, 293.66, 369.99, 392, 0, 329.63, 293.66]
     ];
-    const notes = boss.active ? [293.66, 0, 349.23, 440, 392, 349.23, 329.63, 0, 293.66, 0, 440, 523.25, 493.88, 440, 392, 349.23] : themes[region];
-    const beat = boss.active ? 0.14 : 0.18;
+    const phaseTwo = boss.active && boss.hp <= boss.maxHp / 2;
+    const notes = boss.active
+      ? phaseTwo
+        ? [440, 392, 349.23, 329.63, 293.66, 0, 261.63, 349.23, 392, 349.23, 293.66, 261.63, 220, 0, 261.63, 349.23]
+        : [293.66, 0, 349.23, 440, 392, 349.23, 329.63, 0, 293.66, 0, 440, 523.25, 493.88, 440, 392, 349.23]
+      : themes[region];
+    const beat = boss.active ? phaseTwo ? 0.11 : 0.14 : 0.18;
     while (nextNote < audio.currentTime + 0.04) {
       const step = musicStep % notes.length;
       const when = Math.max(nextNote, audio.currentTime + 0.01);
@@ -216,6 +248,8 @@ const gamepadStatus = document.getElementById("gamepad-status");
         const bass = boss.active ? 73.42 : [55, 49, 65.41][region];
         scheduleTone(bass, when, beat * 1.8, "triangle", 0.027);
       }
+      if (boss.active && step % 4 === 0) scheduleNoise(when, 0.1, 0.018, 180);
+      if (phaseTwo && step % 4 === 2) scheduleNoise(when, 0.075, 0.009, 2800);
       musicStep += 1;
       nextNote += beat;
     }
@@ -230,6 +264,9 @@ const gamepadStatus = document.getElementById("gamepad-status");
     checkpoint = 80;
     bossIntro = 0;
     shake = 0;
+    moonFlash = 0;
+    regionBannerTimer = 0;
+    currentRegion = 0;
     combo = 0;
     comboTimer = 0;
     player = {
@@ -243,6 +280,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
       health: 5,
       lives: 3,
       hearts: 5,
+      sigils: 0,
       weaponLevel: 1,
       invulnerable: 0,
       attackTime: 0,
@@ -282,7 +320,9 @@ const gamepadStatus = document.getElementById("gamepad-status");
       x: 245 + index * 248,
       y: FLOOR - 20 - (index % 3 === 1 ? 15 : 0),
       alive: true,
-      drop: index % 5 === 0 ? "relic" : index % 4 === 0 ? "heart" : "points"
+      drop: [2, 6, 10].includes(index) ? "sigil"
+        : [0, 5].includes(index) ? "relic"
+          : index % 4 === 0 ? "heart" : "points"
     }));
     projectiles = [];
     pickups = [];
@@ -345,8 +385,60 @@ const gamepadStatus = document.getElementById("gamepad-status");
     }
   };
 
+  const defeatBoss = () => {
+    if (boss.defeated) return;
+    boss.defeated = true;
+    score += 3000;
+    saveBestScore();
+    spawnBurst(boss.x + boss.w / 2, boss.y + 20, "#ffe08a", 20, 110);
+    projectiles = [];
+    state = "win";
+    tone(720, 0.45, "triangle", 0.04);
+  };
+
+  const moonStorm = () => {
+    if (player.sigils < 3) {
+      tone(145, 0.08, "square", 0.018);
+      return;
+    }
+    player.sigils = 0;
+    moonFlash = 0.46;
+    shake = Math.max(shake, 8);
+    const centerX = player.x + player.w / 2;
+    const centerY = player.y + player.h / 2;
+    for (const enemy of enemies) {
+      if (!enemy.alive) continue;
+      const distance = Math.hypot(enemy.x + enemy.w / 2 - centerX, enemy.y + enemy.h / 2 - centerY);
+      if (distance < 132) {
+        damageEnemy(enemy);
+        if (enemy.alive && distance < 92) damageEnemy(enemy);
+      }
+    }
+    if (boss.active && !boss.defeated && Math.hypot(boss.x + boss.w / 2 - centerX,
+      boss.y + boss.h / 2 - centerY) < 222) {
+      boss.hp -= 3;
+      boss.hurt = 0.3;
+      if (boss.hp <= 0) defeatBoss();
+    }
+    projectiles = projectiles.filter(projectile => projectile.kind === "dagger" ||
+      Math.hypot(projectile.x - centerX, projectile.y - centerY) > 180);
+    spawnBurst(centerX, centerY, "#a8e3ff", 26, 150);
+    spawnBurst(centerX, centerY, "#fff0a8", 16, 105);
+    if (audio && soundOn) {
+      const when = audio.currentTime;
+      scheduleTone(440, when, 0.38, "triangle", 0.035);
+      scheduleTone(659.25, when, 0.34, "triangle", 0.027);
+      scheduleTone(880, when, 0.3, "sine", 0.02);
+    }
+  };
+
   const collectPickup = pickup => {
-    if (pickup.type === "heart") {
+    if (pickup.type === "sigil") {
+      player.sigils = Math.min(3, player.sigils + 1);
+      score += 250;
+      tone(880, 0.18, "triangle", 0.035);
+      tone(1320, 0.12, "sine", 0.02);
+    } else if (pickup.type === "heart") {
       player.hearts = Math.min(9, player.hearts + 2);
       score += 100;
       tone(740, 0.12, "triangle", 0.028);
@@ -365,7 +457,9 @@ const gamepadStatus = document.getElementById("gamepad-status");
       tone(560, 0.09, "square", 0.022);
     }
     saveBestScore();
-    spawnBurst(pickup.x, pickup.y, pickup.type === "relic" ? "#ffe18a" : "#f5c875", 8, 58);
+    const pickupColor = pickup.type === "sigil" ? "#a8e3ff"
+      : pickup.type === "relic" ? "#ffe18a" : "#f5c875";
+    spawnBurst(pickup.x, pickup.y, pickupColor, 8, 58);
   };
 
   const overlaps = (a, b) =>
@@ -416,13 +510,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
       spawnBurst(boss.x + boss.w / 2, boss.y + 22, "#f4c773", 9, 65);
       score += 250;
       tone(150, 0.12, "sawtooth", 0.035);
-      if (boss.hp <= 0) {
-        boss.defeated = true;
-        score += 3000;
-        saveBestScore();
-        tone(720, 0.45, "triangle", 0.04);
-        state = "win";
-      }
+      if (boss.hp <= 0) defeatBoss();
     }
   };
 
@@ -495,6 +583,8 @@ const gamepadStatus = document.getElementById("gamepad-status");
     player.invulnerable = Math.max(0, player.invulnerable - dt);
     comboTimer = Math.max(0, comboTimer - dt);
     if (comboTimer === 0) combo = 0;
+    moonFlash = Math.max(0, moonFlash - dt);
+    regionBannerTimer = Math.max(0, regionBannerTimer - dt);
     bossIntro = Math.max(0, bossIntro - dt);
     shake = Math.max(0, shake - 55 * dt);
 
@@ -523,6 +613,8 @@ const gamepadStatus = document.getElementById("gamepad-status");
       gamepadJustPressed.has("attack")) whip();
     if (justPressed.has("dagger") || justPressed.has("x") || justPressed.has("X") ||
       gamepadJustPressed.has("dagger")) throwDagger();
+    if (justPressed.has("special") || justPressed.has("c") || justPressed.has("C") ||
+      gamepadJustPressed.has("special")) moonStorm();
 
     const previousBottom = player.y + player.h;
     player.vy = Math.min(player.vy + 870 * dt, 430);
@@ -545,6 +637,15 @@ const gamepadStatus = document.getElementById("gamepad-status");
     }
     const arenaLimit = boss.active && !boss.defeated ? WORLD - 196 : WORLD - 30;
     player.x = Math.max(12, Math.min(arenaLimit, player.x));
+    const nextRegion = regionAt(player.x);
+    if (nextRegion !== currentRegion) {
+      currentRegion = nextRegion;
+      regionBannerTimer = 2.2;
+      musicStep = 0;
+      if (audio) nextNote = audio.currentTime + 0.04;
+      tone(nextRegion === 2 ? 392 : 330, 0.22, "triangle", 0.03);
+      tone(nextRegion === 2 ? 587 : 494, 0.2, "sine", 0.02);
+    }
     if (player.x > 1680) checkpoint = Math.max(checkpoint, 1640);
     if (player.x > WORLD - 520 && !boss.active) {
       boss.active = true;
@@ -614,14 +715,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
           boss.hp -= 1;
           boss.hurt = 0.18;
           projectile.life = 0;
-          if (boss.hp <= 0) {
-            boss.defeated = true;
-            score += 3000;
-            saveBestScore();
-            spawnBurst(boss.x + boss.w / 2, boss.y + 20, "#ffe08a", 20, 110);
-            state = "win";
-            tone(720, 0.45, "triangle", 0.04);
-          }
+          if (boss.hp <= 0) defeatBoss();
         }
       } else if (overlaps(projectile, player)) {
         hurtPlayer();
@@ -816,6 +910,13 @@ const gamepadStatus = document.getElementById("gamepad-status");
       rect(x - 7, y - 3, 15, 5, "#f4cc72");
       rect(x - 1, y - 6, 2, 13, "#fff0b0");
       rect(x - 5, y - 2, 11, 2, "#fff0b0");
+    } else if (pickup.type === "sigil") {
+      rect(x - 1, y - 8, 3, 3, "#e5f8ff");
+      rect(x - 5, y - 5, 11, 3, "#8edfff");
+      rect(x - 7, y - 2, 15, 4, "#60b9e3");
+      rect(x - 5, y + 2, 11, 3, "#8edfff");
+      rect(x - 1, y + 5, 3, 3, "#e5f8ff");
+      rect(x - 1, y - 2, 3, 4, "#25344d");
     } else {
       rect(x - 5, y - 5, 10, 10, "#dfb768");
       rect(x - 2, y - 3, 4, 6, "#fff0b0");
@@ -966,6 +1067,11 @@ const gamepadStatus = document.getElementById("gamepad-status");
       rect(51 + i * 10, 4, 3, 2, i < player.health ? "#ef9a85" : "#625161");
     }
     text("♥ " + String(player.hearts).padStart(2, "0"), 108, 6, 7, "#f2c86f");
+    text("S", 151, 6, 7, "#c9e9ff");
+    for (let index = 0; index < 3; index++) {
+      rect(161 + index * 8, 7, 5, 5, index < player.sigils ? "#8edfff" : "#3c4252");
+      rect(163 + index * 8, 5, 2, 2, index < player.sigils ? "#e5f8ff" : "#596071");
+    }
     text("PTS " + String(score).padStart(6, "0"), 188, 6, 7, "#d9cfba");
     text("PEITSCHE-" + player.weaponLevel, 258, 6, 6, "#f0cc79");
     text("L-" + player.lives, 326, 6, 7, "#f18c82");
@@ -977,6 +1083,7 @@ const gamepadStatus = document.getElementById("gamepad-status");
         192, 43, 6, "#e5c7a9", "center");
     }
     if (combo > 1 && comboTimer > 0) text("KOMBO x" + combo, 192, 15, 6, "#f4cd72", "center");
+    if (player.sigils === 3) text("C / B: MONDSTURM", 192, 53, 6, "#c8edff", "center");
   };
 
   const drawOverlay = (headline, lines, prompt) => {
@@ -987,6 +1094,28 @@ const gamepadStatus = document.getElementById("gamepad-status");
     text(headline, W / 2, 61, 15, "#f0d6ac", "center");
     lines.forEach((line, index) => text(line, W / 2, 91 + index * 13, 7, "#c9c0c0", "center"));
     text(prompt, W / 2, 144, 8, "#f1c86c", "center");
+  };
+
+  const drawMoonStorm = () => {
+    if (!player || moonFlash <= 0) return;
+    const progress = 1 - moonFlash / 0.46;
+    const x = player.x - camera + player.w / 2;
+    const y = player.y + player.h / 2;
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.9, moonFlash * 2.1);
+    ctx.strokeStyle = "#c7edff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 12 + progress * 137, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha *= 0.7;
+    ctx.strokeStyle = "#f4d58b";
+    ctx.beginPath();
+    ctx.arc(x, y, 8 + progress * 112, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "rgba(190, 224, 255, " + (moonFlash * 0.13) + ")";
+    ctx.fillRect(0, 0, W, H);
   };
 
   const render = () => {
@@ -1014,11 +1143,12 @@ const gamepadStatus = document.getElementById("gamepad-status");
         player.attackTime > 0, player.invulnerable > 0, player.weaponLevel);
       drawHud();
     }
+    drawMoonStorm();
     if (state === "title") {
       drawOverlay("DER ASCHENMOND", [
         "MIRA BELMONT GEGEN DIE NACHT",
         "WALD · KRYPTA · BURG",
-        "FINDE RELIKTE, ERWECK DIE PEITSCHE"
+        "DREI MONDSIGILLEN ENTFESSELN DEN STURM"
       ], "ENTER / A STARTET · START VERSUCHT VOLLBILD");
       drawHero(12, FLOOR - 27, 1, 0, false, false, false);
     } else if (state === "paused") {
@@ -1030,7 +1160,12 @@ const gamepadStatus = document.getElementById("gamepad-status");
       drawOverlay("DIE NACHT ENDET", ["DER NACHTGRAF IST BESIEGT", "PUNKTE: " + score, "BESTWERT: " + bestScore],
         "ENTER / A FÜR EIN NEUES SPIEL");
     }
-    if (state === "play" && bossIntro > 0) {
+    if (state === "play" && regionBannerTimer > 0) {
+      const regions = ["WALD DER VERLORENEN", "VERSUNKENE KRYPTA", "BURG DES NACHTGRAFS"];
+      rect(116, 67, 152, 18, "#101321c9");
+      rect(116, 67, 152, 1, "#d6b974");
+      text(regions[currentRegion], W / 2, 73, 6, "#f2dfba", "center");
+    } else if (state === "play" && bossIntro > 0) {
       text("DER NACHTGRAF ERWACHT", W / 2, 80, 8, "#f1ca7c", "center");
     }
     ctx.restore();

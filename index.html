@@ -21,32 +21,34 @@
           <button id="sound-button" type="button" aria-label="Ton umschalten">♪ TON AN</button>
           <button id="fullscreen-button" type="button" aria-label="Vollbild umschalten">⛶ VOLLBILD</button>
         </div>
+        <nav class="touch-controls" aria-label="Touch-Steuerung">
+          <div class="dpad">
+            <button data-key="left" aria-label="Nach links">◀</button>
+            <button data-key="right" aria-label="Nach rechts">▶</button>
+            <button data-key="down" aria-label="Ducken">▼</button>
+          </div>
+          <div class="action-buttons">
+            <button data-key="special" class="button-special" aria-label="Mondsturm" title="Mondsturm · drei Sigillen">★</button>
+            <button data-key="dagger" class="button-small" aria-label="Wurfmesser">M</button>
+            <button data-key="attack" class="button-main" aria-label="Peitsche">B</button>
+            <button data-key="jump" class="button-jump" aria-label="Springen">A</button>
+          </div>
+        </nav>
       </section>
       <div class="marquee">
         <span>STAGE 01 — DER WEG ZUM SCHLOSS</span>
         <span class="status"><i></i><span id="gamepad-status">EDGE · PAD BEREIT</span></span>
       </div>
-      <nav class="touch-controls" aria-label="Touch-Steuerung">
-        <div class="dpad">
-          <button data-key="left" aria-label="Nach links">◀</button>
-          <button data-key="right" aria-label="Nach rechts">▶</button>
-          <button data-key="down" aria-label="Ducken">▼</button>
-        </div>
-        <div class="action-buttons">
-          <button data-key="dagger" class="button-small" aria-label="Wurfmesser">M</button>
-          <button data-key="attack" class="button-main" aria-label="Peitsche">B</button>
-          <button data-key="jump" class="button-jump" aria-label="Springen">A</button>
-        </div>
-      </nav>
       <footer class="help">
         <span><kbd>←</kbd><kbd>→</kbd> LAUFEN</span>
         <span><kbd>LEERTASTE</kbd> SPRINGEN</span>
         <span><kbd>Z</kbd> PEITSCHE</span>
         <span><kbd>X</kbd> MESSER</span>
+        <span><kbd>C</kbd> MONDSTURM</span>
         <span><kbd>P</kbd> PAUSE</span>
         <span><kbd>M</kbd> TON</span>
         <span><kbd>F</kbd> VOLLBILD</span>
-        <span class="pad-help"><kbd>A</kbd> SPRUNG · <kbd>X</kbd> PEITSCHE · <kbd>Y</kbd> MESSER</span>
+        <span class="pad-help">PAD: <kbd>A</kbd> SPRUNG · <kbd>X</kbd> PEITSCHE · <kbd>Y</kbd> MESSER · <kbd>B</kbd> STURM</span>
       </footer>
       <p class="credit">MIRA BELMONT · EINE NACHT · EIN SCHLOSS</p>
     </main>
